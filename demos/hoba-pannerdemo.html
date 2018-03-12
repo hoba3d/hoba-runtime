@@ -1,0 +1,111 @@
+<html>
+<head>
+<title>HOBA.SpatialPanner demo</title>
+<!-- jari kleimola 2015-16 -->
+
+<link rel="stylesheet" href="hoba-pannerdemo.css">
+<script src="../libs/three.min.js"></script>
+<script src="../libs/delaunay.min.js"></script>
+<script src="../libs/hoba-spatialpanner-api.min.js"></script>
+
+<!-- HOBA.SpatialPanner API consists of these files:
+<script src="../hoba-js/hoba-waa.js"></script>
+<script src="../hoba-js/hoba-wavh.js"></script>
+<script src="../hoba-js/hoba-listener.js"></script>
+<script src="../hoba-js/hoba-spatialpanner.js"></script>
+-->
+	
+<script>
+	var panner;
+	
+	function onslider (slider)
+	{
+		var w,v = slider.value;
+		switch (slider.id)
+		{
+			case "a":	panner.positionA = w = v; break;
+			case "e":	panner.positionE = w = v; break;
+			case "r":	panner.positionR = w = v/10; w = w.toFixed(2); break;
+			case "x":	panner.positionX = w = v/10; w = w.toFixed(2); break;
+			case "y":	panner.positionY = w = v/10; w = w.toFixed(2); break;
+			case "z":	panner.positionZ = w = v/10; w = w.toFixed(2); break;
+		}
+		slider.previousElementSibling.innerHTML = w;
+		
+		// -- update cartesian or spherical slider set
+		var set = slider.parentElement.parentElement.id;
+		if (set == "spherical")
+		{
+			x.value = (panner.positionX * 10) | 0;	x.previousElementSibling.innerHTML = panner.positionX.toFixed(2);
+			y.value = (panner.positionY * 10) | 0;	y.previousElementSibling.innerHTML = panner.positionY.toFixed(2);
+			z.value = (panner.positionZ * 10) | 0;	z.previousElementSibling.innerHTML = panner.positionZ.toFixed(2);
+		}
+		else if (set == "cartesian")
+		{
+			a.value = (panner.positionA) | 0;	a.previousElementSibling.innerHTML = a.value;
+			e.value = (panner.positionE) | 0;	e.previousElementSibling.innerHTML = e.value;
+			r.value = (panner.positionR * 10) | 0; r.previousElementSibling.innerHTML = panner.positionR.toFixed(2)
+		}
+	}
+	
+	// -- combobox selection
+	function loadHRTF (url)
+	{
+		panner.loadHRTF("data/" + url);
+	}
+	
+	// -- entry point
+	function main()
+	{
+		AudioContext = window.AudioContext || window.webkitAudioContext;
+		var actx = new AudioContext();
+		var source = actx.createMediaElementSource(audio);
+		panner = new HOBA.SpatialPanner(actx);
+		panner.loadHRTF("data/cipic.wavh").then(
+			function ()
+			{
+				panner.rolloffFactor = 1;
+				source.connect(panner.input);
+				panner.connect(actx.destination);
+			},
+			function ()	{ console.log("HRTF load failed"); });			
+	}
+</script>
+</head>
+<body onload="main()">
+	<h1>HOBA SpatialPanner API demo</h1>
+  <p id="author">jari kleimola 2015-16 / tested in Chrome 64</p>
+	<p>HOBA.SpatialPanner extends Web Audio API SpatialPanner node
+	with custom HRTF and spherical coordinate system support</p>
+	<div><div class="label" id="hrtflabel">HRTF</div>
+		<select id="hrtf" onchange="loadHRTF(this.value)">
+			<option selected>cipic.wavh</option>
+			<!-- option>aalto.wavh</option -->
+		</select></div>
+	<audio id="audio" src="data/ticktock.wav" loop controls controlsList="nodownload"></audio>
+	
+	<section id="spherical">
+		<div><div class="label">azimuth</div><div class="value">0</div>
+			<input id="a" oninput="onslider(this)" type="range" min="-180" max="180" value="0" autocomplete="off">
+		</div>
+		<div class="slider"><div class="label">elevation</div><div class="value">0</div>
+			<input id="e" oninput="onslider(this)" type="range" min="-90" max="90" value="0" autocomplete="off">
+		</div>
+		<div class="slider"><div class="label">distance</div><div class="value">1.00</div>
+			<input id="r" oninput="onslider(this)" type="range" min="1" max="100" value="10" autocomplete="off">
+		</div>
+	</section>
+	
+	<section id="cartesian">
+		<div><div class="label">x</div><div class="value">0.00</div>
+			<input id="x" oninput="onslider(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+		</div>
+		<div><div class="label">y</div><div class="value">0.00</div>
+			<input id="y" oninput="onslider(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+		</div>
+		<div><div class="label">z</div><div class="value">-1.00</div>
+			<input id="z" oninput="onslider(this)" type="range" min="-100" max="100" value="-10" autocomplete="off">
+		</div>
+	</section>
+</body>
+</html>

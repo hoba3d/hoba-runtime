@@ -1,0 +1,37 @@
+body { font-family:"gill sans","helvetica neue",sans-serif; font-weight:100; cursor:default; padding-left:7px; }
+h1 { font-weight:100; margin:0;  }
+#author { font-weight:100; font-size:14px; margin:0 0 20px 0; }
+audio { margin:10px 0 10px 0; }
+input { width:180px; position:relative; top:3px; }
+.slider { height:20px; }
+.value { width:25px; display:inline-block; font-size:12px; text-align:center; margin-right:5px; }
+.label { line-height:20px; width:50px; display:inline-block; font-size:13px; }
+#a { width:180px; }
+#hrtflabel { width:auto; margin-right:5px; position:relative; top:1px; }
+#cartesian,#srcgain { margin-top:5px; }
+
+input[type=range]::-moz-range-trackx { height:4px; }
+input[type=range]::-moz-range-progressx { height:16px; background-color:transparent; }
+
+#apigroups { margin-top:20px; }
+.apigroup { background:orange; display:inline-block; height:258px; 
+	padding:5px; vertical-align:top; border-radius:3px; color:white; }
+.float { float:left; }
+.right { float:right; width:60px; margin-right:0px; }
+.filler { visibility:hidden; }
+#position { margin-top:31px; color:black; margin-left:5px; background-color:white; border-radius:5px; padding:0 5px 5px 5px; }
+h3 { margin:0 0 10px 0; font-weight:100; }
+p { width:800px; margin:0 0 10px 0; }
+strong { font-weight:400; font-family:monospace; }
+select,button { display:block; }
+select,button { width:100px; margin-bottom:2px; }
+select[size="3"],#soundsources { margin:5px 0 5px 0; }
+#hrtflabel { float:left; width:40px; }
+#hrtf { display:inline; }
+#listenerfront,#listenerup { margin-top:5px; }
+#listenersliders { background:white; color:black; border-radius:5px; padding:0 5px 5px 5px; margin-top:10px; }
+
+/* OSC */
+#messageArea { height:45px; max-height:45px; margin-top:20px; }
+#messageLabel { font-weight: 100; margin:10px 0 0 0; }
+#message { font-family: monospace; font-size: 100%; margin:5px 0 5px 0; }

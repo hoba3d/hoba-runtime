@@ -1,0 +1,180 @@
+<html>
+<head>
+<title>HOBA HRTF explorer</title>
+<!-- jari kleimola 2015-16 -->
+
+<link rel="stylesheet" href="hoba-explorer.css"/>
+<script src="../libs/three.min.js"></script>
+<script src="../libs/TrackballControls.js"></script>
+<script src="../libs/delaunay.min.js"></script>
+<script src="../libs/hoba-spatialpanner-api.min.js"></script>
+<script src="../libs/hoba-spatialsource-api.min.js"></script>
+<script src="visual-renderer.js"></script>
+
+<script>
+var spatialSource;	// spatial audio source bound to the HTML5 MediaElement
+var visualRenderer;	// 3D graphics renderer
+
+	
+// ------------------------------------------------------------------
+// user interaction handlers
+//
+
+// -- called when user changed the view type (normal/mirror)
+// -- "mirror" flips the display so that nose is pointing towards the user
+function onView(type)
+{
+	var yrot = (type == "mirror") ? Math.PI : 0;
+	visualRenderer.model.rotation.set(0,yrot,0);
+	visualRenderer.redraw();
+}
+
+// -- called when user toggled the checkboxes
+function toggleDetail(type, onoff)
+{
+	if (type == "grid")		visualRenderer.showGrid(onoff);
+	if (type == "lines")		visualRenderer.showLines(onoff);
+	if (type == "triangle")	visualRenderer.showTriangle(onoff);
+}
+
+// -- called when user interacted with the azimuth/elevation sliders
+// -- updates audio and visual position of the MediaElement audio source
+var azim = 15;
+var elev = 0;
+function onPosition (type, value)
+{
+	if (type == "e") { elev = value; elevation.innerHTML = value; }
+	if (type == "a")
+	{
+		azim = value < 0 ? 360+(value|0) : value;
+		azimuth.innerHTML = value|0;
+	}
+	var index = spatialSource.setSPosition(azim,elev);
+	visualRenderer.setPosition(azim,elev,index);
+}
+	
+// -- called when user resized the browser window. Updates 3D graphics
+function onresize()
+{
+	var hrect = document.querySelector("header").getBoundingClientRect();
+	var xmargin = hrect.left;
+	var ymargin = hrect.top + 5;
+	var w = window.innerWidth - 2*xmargin;
+	var h = window.innerHeight - hrect.height - 2*ymargin;
+	var webgl = document.getElementById("webgl");
+	webgl.clientWidth  = w;
+	webgl.clientHeight = h;
+	visualRenderer.resize(w,h);
+}
+
+// ------------------------------------------------------------------
+// application implementation
+//
+
+// -- initializes audio and visual parts of the app
+// -- called after HRTF has been initially loaded or when changed later
+function initModel (geo)
+{
+	// -- this is the HTML5 MediaElement bound audio source (ticktock.wav)
+	if (!spatialSource)
+	{
+		spatialSource = new HOBA.SpatialSource(1, { element:"audiosrc" });
+		HOBA.addSource(spatialSource);
+	}
+	var index = spatialSource.setSPosition(azim,elev);
+
+	// -- update 3D graphics and UI controls
+	visualRenderer.setHRTFGeometry(geo);
+	visualRenderer.setPosition(azim,elev, index);
+	azimuth.innerHTML = azim|0;
+	document.getElementById("sazim").value = azim|0;	
+	var range = HOBA.getElevationRange();
+	var slider = document.getElementById("selev");
+	slider.min = range.min | 0;
+	slider.max = range.max | 0;
+	slider.value = elev;
+	elevation.innerHTML = elev;
+	document.getElementById("spinner").style.display = "none";
+}
+
+// -- HOBA.init() and loadHRTF() results are handled here
+function onhrtf_loaded(geo)
+{
+	if (geo) initModel(geo);
+	else alert("HRTF load failed");
+	document.getElementById("spinner").style.display = "none";
+}
+
+// -- called when user selects a HRTF from the combo box
+function loadHRTF(filename)
+{
+	var url = "data/" + filename;
+	document.getElementById("spinner").style.display = "block";
+	HOBA.loadHRTF(url).then(
+		function (geo) { onhrtf_loaded(geo); },
+		function ()		{ onhrtf_loaded();	 });	
+}
+
+// -- entry point, called when all assets have been loaded
+function main()
+{
+	// -- init HOBA and load a default HRTF
+	document.getElementById("spinner").style.display = "block";
+	HOBA.init("data/cipic.wavh").then(
+		function (geo) { onhrtf_loaded(geo); },
+		function ()		{ onhrtf_loaded();	 });
+
+	// -- init 3D graphics
+	visualRenderer = new VisualRenderer("webgl");
+	visualRenderer.showPosition(true);
+	visualRenderer.showTriangle(true);
+	onView("mirror");
+		
+	document.body.onselectstart = function () { return false; }
+	window.addEventListener('resize', onresize, false);
+	onresize();
+}
+
+</script>
+</head>
+<body onload="main()">
+	<header>
+		<h1>HOBA HRTF explorer</h1>
+    <p>jari kleimola 2015-16 / tested in Chrome 64</p>
+		<audio id="audiosrc" src="data/ticktock.wav" loop controls controlsList="nodownload"></audio>
+		<div class="control inline" id="chrtf">HRTF
+			<select id="db" onchange="loadHRTF(this.value)">
+				<option selected>cipic.wavh</option>
+				<option>aalto.wavh</option>
+			</select></div>
+		<div id="spinner" data-loader="circle"></div>
+		<div class="controlrow">
+			<div class="control inline" id="view">view
+				<select onchange="onView(this.value)">
+					<option>normal</option>
+					<option selected>mirror</option>
+				</select></div>
+			<div class="control inline check">grid
+				<input type="checkbox" checked onchange="toggleDetail('grid',this.checked)"/>
+			</div>
+			<div class="control inline check">triangulation
+				<input type="checkbox" onchange="toggleDetail('lines',this.checked)"/>
+			</div>
+			<div class="control inline check">interpolation
+				<input type="checkbox" checked onchange="toggleDetail('triangle',this.checked)"/>
+			</div>
+		</div>
+		<div class="controlrow">
+			<div class="control" style="clear:both;">elevation
+				<div class="value" id="elevation">0</div>
+				<input id="selev" type="range" min="-90" max="90" value="0" oninput="onPosition('e', this.value)">
+			</div>
+			<div class="control">azimuth
+				<div class="value" id="azimuth">1</div>
+				<input id="sazim" type="range" min="-180" max="180" value="0" oninput="onPosition('a', this.value)">
+			</div>
+		</div>
+	</header>
+	<div id="webgl"></div>
+</body>
+</html>
