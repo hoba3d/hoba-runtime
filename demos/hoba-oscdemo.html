@@ -1,0 +1,196 @@
+<html>
+<head>
+<title>HOBA.SpatialSource demo</title>
+<!-- jari kleimola 2015-16 -->
+
+<link rel="stylesheet" href="hoba-oscdemo.css">
+<script src="../libs/three.min.js"></script>
+<script src="../libs/delaunay.min.js"></script>
+<script src="../libs/osc-browser.min.js"></script>
+<script src="../libs/hoba-spatialpanner-api.min.js"></script>
+<script src="../libs/hoba-spatialsource-api.min.js"></script>
+
+<script src="demo-soundpool.js"></script>
+<script src="demo-source.js"></script>
+<script src="demo-listener.js"></script>
+
+<script>
+	
+	// most code in this demo is for keeping the UI in sync,
+	// whereas HOBA.SpatialSource API itself is pretty simple:
+	// relevant API calls can be found in demo-xxx.js files near comments marked with "API"
+	
+	// -- helper to set slider value
+	function setSlider(id, v, scaler)
+	{
+		var control = document.getElementById(id);
+		var slider  = control.querySelector("input");
+		var value	= slider.previousElementSibling;
+		slider.value = (v * scaler)|0;
+		value.innerHTML = v;
+	}
+
+	// -- parsed (msg) and received (origmsg) OSC messages are routed here
+	function onOSC (msg, origmsg)
+	{
+		if (msg.source) onOSCsource(msg);
+		else if (msg.tokens[1] == "listener") onOSClistener(msg, origmsg.args[0]);
+		else if (msg.tokens[1] == "sound") onOSCsoundpool(msg);
+		message.innerHTML = JSON.stringify(origmsg);
+	}
+	
+	// -- entry point
+	function main()
+	{
+		HOBA.init("data/cipic.wavh").then(
+			function () { HOBA.startOSC("ws://localhost:8081", onOSC); },
+			function ()	{ console.log("HRTF load failed"); });			
+	}
+</script>
+</head>
+<body onload="main()">
+	<h1>HOBA SpatialSource API demo (with OSC)</h1>
+  <p id="author">jari kleimola 2015-16 / tested in Chrome 64</p>  
+	<p>HOBA.SpatialSource encapsulates HOBA.SpatialPanner and
+		Web Audio API AudioSource node in a single entity.
+	</p>
+	<p>Start by populating the soundpool with the sounds on left. Then select one
+		of the soundpool sounds and add sources in the middle. Select one of the sources to
+		change its attributes, to stop it, or to remove it completely. There's only one
+		listener in the system. Note that listener's front and up directions are decoupled in the demo.
+		Usually, an external head tracker is connected to these attributes.
+	</p>
+	<p>The demo also works with local OSC controller, which is connected to the browser
+		via websockets. The distribution contains a node.js module (osc2ws.js) that bridges
+		OSC messages from UDP port 7400 to browser's websocket port 8081, as well as a Pd
+		patch that can be used for testing. OSC message display at the bottom of the page shows
+		corresponding OSC messages while operating the UI controls. <strong>node osc2ws.js</strong> starts
+    the OSC bridge.
+	</p>
+	<section id="apigroups">
+		
+		<div class="apigroup" id="soundpoolapi">
+			<h3>soundpool</h3>
+			<select id="cursound">
+				<option>ticktock.wav</option>
+				<option>cuckoo.wav</option>
+				<option>cowbell.wav</option>
+			</select>
+			<button onclick="onsoundpool('add')">add</button>
+			<select id="soundpool" size="3" onchange="onsoundpool('select')">
+			</select>
+			<button onclick="onsoundpool('remove')" id="removesound" disabled>remove</button>
+		</div>
+		
+		<div class="apigroup">
+			<h3>sources</h3>
+			<div class="float">
+				<select class="filler" disabled></select>
+				<button onclick="onsource('add')" id="addsource" disabled>add</button>
+				<select id="soundsources" size="8" onchange="onsource('select')">
+				</select>
+				<button onclick="onsource('remove')" id="removesource" disabled>remove</button>
+				<button onclick="onsource('stop')" id="stopsource" disabled>stop</button>
+				<button onclick="onsource('change')" id="changesource" disabled>change snd</button>
+			</div>
+			<div class="float">
+				<button id="resetsource" class="right" onclick="resetSource()" disabled>reset</button>
+				<div id="position">
+					<section id="spherical">
+						<div id="posA" class="slider">
+							<div class="label">azimuth</div><div class="value">0</div>
+							<input id="a" oninput="onslider(this)" type="range" min="-180" max="180" value="0" autocomplete="off" disabled>
+						</div>
+						<div id="posE" class="slider">
+							<div class="label">elevation</div><div class="value">0</div>
+							<input id="e" oninput="onslider(this)" type="range" min="-90" max="90" value="0" autocomplete="off" disabled>
+						</div>
+						<div id="posR" class="slider">
+							<div class="label">distance</div><div class="value">1.00</div>
+							<input id="r" oninput="onslider(this)" type="range" min="1" max="100" value="10" autocomplete="off" disabled>
+						</div>
+					</section>
+					<section id="cartesian">
+						<div id="posX" class="slider">
+							<div class="label">x</div><div class="value">0.00</div>
+							<input id="x" oninput="onslider(this)" type="range" min="-100" max="100" value="0" autocomplete="off" disabled>
+						</div>
+						<div id="posY" class="slider">
+							<div class="label">y</div><div class="value">0.00</div>
+							<input id="y" oninput="onslider(this)" type="range" min="-100" max="100" value="0" autocomplete="off" disabled>
+						</div>
+						<div  id="posZ" class="slider">
+							<div class="label">z</div><div class="value">-1.00</div>
+							<input id="z" oninput="onslider(this)" type="range" min="-100" max="100" value="-10" autocomplete="off" disabled>
+						</div>
+					</section>
+					<div id="srcgain" class="slider">
+						<div class="label">gain</div><div class="value">1.00</div>
+						<input id="sg" oninput="onslider(this)" type="range" min="0" max="100" value="100" autocomplete="off" disabled>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<div class="apigroup" id="listenerapi">
+			<h3>listener</h3>
+			<div><div class="label" id="hrtflabel">HRTF</div>
+				<select id="hrtf" onchange="loadHRTF(this.value)">
+					<option selected>cipic.wavh</option>
+					<!-- option>aalto.wavh</option -->
+				</select>
+				<button class="right" onclick="resetListener()">reset</button>
+			</div>
+			<div id="listenersliders">
+				<section id="listenerpos">
+					<div id="lposX" class="slider">
+						<div class="label">pos x</div><div class="value">0.00</div>
+						<input id="lposx" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+					<div id="lposY" class="slider">
+						<div class="label">pos y</div><div class="value">0.00</div>
+						<input id="lposy" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+					<div  id="lposZ" class="slider">
+						<div class="label">pos z</div><div class="value">0.00</div>
+						<input id="lposz" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+				</section>
+				<section id="listenerfront">
+					<div id="frontX" class="slider">
+						<div class="label">front x</div><div class="value">0.00</div>
+						<input id="frontx" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+					<div id="frontY" class="slider">
+						<div class="label">front y</div><div class="value">0.00</div>
+						<input id="fronty" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+					<div  id="frontZ" class="slider">
+						<div class="label">front z</div><div class="value">-1.00</div>
+						<input id="frontz" oninput="onlistener(this)" type="range" min="-100" max="100" value="-100" autocomplete="off">
+					</div>
+				</section>
+				<section id="listenerup">
+					<div id="upX" class="slider">
+						<div class="label">up x</div><div class="value">0.00</div>
+						<input id="upx" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+					<div id="upY" class="slider">
+						<div class="label">up y</div><div class="value">1.00</div>
+						<input id="upy" oninput="onlistener(this)" type="range" min="-100" max="100" value="100" autocomplete="off">
+					</div>
+					<div  id="upZ" class="slider">
+						<div class="label">up z</div><div class="value">0.00</div>
+						<input id="upz" oninput="onlistener(this)" type="range" min="-100" max="100" value="0" autocomplete="off">
+					</div>
+				</section>
+			</div>
+		</div>
+	</section>
+	
+	<section id="messageArea">
+		<p id="messageLabel">OSC Message:</p>
+		<pre id="message">listening ws://localhost:8081 ...</pre>
+	</section>	
+</body>
+</html>

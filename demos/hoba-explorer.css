@@ -1,0 +1,39 @@
+body { font-family:"gill sans","helvetica neue",sans-serif; }
+h1 { font-weight:100; margin:0; }
+.control { font-size:12px; background:#222; color:#eee;
+	padding:3px 3px 3px 8px; width:445px; height:18px; line-height:18px; 
+	margin-bottom:2px; border-radius:3px; cursor:default;
+}
+p { font-weight:100; font-size:14px; margin:0 0 10px 0; }
+#author { margin:0; padding:0; font-size:14px; font-weight:100; padding-bottom:5px; }
+.control div { display:inline-block; position:absolute; left:70px; }
+.control select { float:right; width:100px; }
+.control input  { float:right; width:100px; display:block; }
+.control input[type="range"]  { width:360px; }
+.control input[type="checkbox"]  { width:20px; }
+.check { width:100px; float:left; margin-right:2px; }
+#view { width:150px; float:left; margin-right:5px; }
+.controlrow { margin-bottom:10px; clear:both; }
+audio { margin:5px 5px 10px 0; float:left; }
+#chrtf { width:140px; float:left; position:relative; top:8px; }
+
+/* OSC */
+#messageArea { height:45px; max-height:45px; }
+#messageLabel { font-weight: 100; margin:10px 0 0 0; }
+#message { font-family: monospace; font-size: 100%; margin:5px 0 5px 0; }
+
+/* https://github.com/jovey-zheng/loader */
+#spinner
+{
+	float:left; margin: 8px; width: 18px; height: 18px;
+	border: 2px solid #444;
+	border-top-color: transparent;
+	border-radius: 100%;
+	animation: circle infinite .75s linear;
+	display: none;
+}
+@keyframes circle
+{
+	0% { transform: rotate(0); }
+	100% { transform: rotate(360deg); }
+}
